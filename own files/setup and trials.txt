@@ -1,0 +1,210 @@
+
+
+
+Success! Created bksm-practice at C:\Users\aankur\Google Drive\awstech\react-practice\bksm-practice
+Inside that directory, you can run several commands:
+
+  npm start
+    Starts the development server.
+
+  npm run build
+    Bundles the app into static files for production.
+
+  npm test
+    Starts the test runner.
+
+  npm run eject
+    Removes this tool and copies build dependencies, configuration files
+    and scripts into the app directory. If you do this, you can’t go back!
+
+We suggest that you begin by typing:
+
+  cd bksm-practice
+  npm start
+
+Happy hacking!
+
+
+
+//------------------------------------------------ 
+// Lambda code 
+//------------------------------------------------ 
+
+const https = require('https');
+
+/**
+ * Pass the data to send as `event.data`, and the request options as
+ * `event.options`. For more information see the HTTPS module documentation
+ * at https://nodejs.org/api/https.html.
+ *
+ * Will succeed with the response body.
+ */
+exports.handler = (event, context, callback) => {
+    const req = https.request(event.options, (res) => {
+        let body = 'TEMP';
+        console.log('Status:', res.statusCode);
+        console.log('Headers:', JSON.stringify(res.headers));
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+            console.log('Successfully processed HTTPS response');
+            // If we know it's JSON, parse it
+            if (res.headers['content-type'] === 'application/json') {
+                body = JSON.parse(body);
+            }
+            callback(null, body);
+        });
+    });
+    req.on('error', callback);
+    req.write(JSON.stringify(event.data));
+    req.end();
+};
+
+
+
+
+
+
+
+HTML: 
+--------------
+  <!--<body>-->
+  <!--      <main>-->
+  <!--        <div >-->
+
+  <!--            <form action="subscribe.html" method="post" class="f-wrap-1">-->
+  <!--              <fieldset>-->
+  <!--                <h3>Subscribe</h3>-->
+  <!--                  <label for="email">-->
+  <!--                      <b>Email:</b>-->
+  <!--                      <input id="id_email" name="name_email" type="text" class="f-name" autocomplete="on" tabindex="1" /><br />-->
+  <!--                  </label>-->
+  <!--                  <div class="f-submit-wrap">-->
+  <!--                      <input type="submit" value="Submit" class="f-submit" tabindex="4" /><br />-->
+  <!--                  </div>-->
+  <!--              </fieldset>-->
+  <!--          </form>-->
+
+  <!--        </div> -->
+  <!--      </main>-->
+  <!--</body>-->
+
+--------------
+
+
+
+
+
+const randomBytes = require('crypto').randomBytes;
+
+const AWS = require('aws-sdk');
+
+const ddb = new AWS.DynamoDB.DocumentClient();
+
+
+
+exports.handler = (event, context, callback) => {
+    console.log('Received event: ', event);
+    console.log('Event details:', event.body); 
+
+    const requestBody = JSON.parse(event.body);
+    const user_email = 'abcd@xyz.com'; 
+    //const user_email = requestBody.NameEmail;
+
+    recordSubscriber(user_email).then(() => {
+        // You can use the callback function to provide a return value from your Node.js
+        // Lambda functions. The first parameter is used for failed invocations. The
+        // second parameter specifies the result data of the invocation.
+
+        // Because this Lambda function is called by an API Gateway proxy integration
+        // the result object must use the following structure.
+        callback(null, {
+            statusCode: 201,
+            body: JSON.stringify({
+                Subscriber: user_email,
+                Time: 'NOW',
+                Location: 'THIS',
+            }),
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+            },
+        });
+    }).catch((err) => {
+        console.error(err);
+
+        // If there is an error during processing, catch it and return
+        // from the Lambda function successfully. Specify a 500 HTTP status
+        // code and provide an error message in the body. This will provide a
+        // more meaningful error response to the end client.
+        errorResponse(err.message, context.awsRequestId, callback)
+    });
+};
+
+
+function recordSubscriber(user_email) {
+    return ddb.put({
+        TableName: 'Subscribers',
+        Item: {
+            Subscriber: user_email,
+            RequestTime: new Date().toISOString(),
+        },
+    }).promise();
+}
+
+function toUrlString(buffer) {
+    return buffer.toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+}
+
+function errorResponse(errorMessage, awsRequestId, callback) {
+  callback(null, {
+    statusCode: 500,
+    body: JSON.stringify({
+      Error: errorMessage,
+      Reference: awsRequestId,
+    }),
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
+}
+
+
+
+
+//------------------------------------------------ 
+// Test Event details 
+//------------------------------------------------ 
+
+{
+    "path": "/ride",
+    "httpMethod": "POST",
+    "headers": {
+        "Accept": "*/*",
+        "Authorization": "eyJraWQiOiJLTzRVMWZs",
+        "content-type": "application/json; charset=UTF-8"
+    },
+    "queryStringParameters": null,
+    "pathParameters": null,
+    "requestContext": {
+        "authorizer": {
+            "claims": {
+                "cognito:username": "the_username"
+            }
+        }
+    },
+    "body": "{\"NameEmail\":\"TempName1\"}"
+}
+
+
+//------------------------------------------------ 
+// Dynamo DB 
+//------------------------------------------------ 
+
+//------------------------------------------------ 
+// API gateway  
+//------------------------------------------------ 
+
+
